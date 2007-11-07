@@ -2,6 +2,10 @@ TODO:
  - Add some syntactic sugar to make timezone conversion easier
  - Performs multiple conversion in one call (via [])
 
+0.050 Wednesday November 07 11:48:08 PST 2007:
+ - Cleaned up some documentation
+ - Added covert flag for doing timezone conversion
+
 0.042 Wednesday November 07 03:38:32 PST 2007:
  - Updated requirements
 

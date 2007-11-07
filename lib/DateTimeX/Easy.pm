@@ -5,15 +5,15 @@ use strict;
 
 =head1 NAME
 
-DateTimeX::Easy - Use ::F::Flexible and ::F::Natural for quick and easy DateTime creation
+DateTimeX::Easy - Use DT::F::Flexible and DT::F::Natural for quick and easy DateTime creation
 
 =head1 VERSION
 
-Version 0.042
+Version 0.050
 
 =cut
 
-our $VERSION = '0.042';
+our $VERSION = '0.050';
 
 =head1 SYNOPSIS
 
@@ -23,7 +23,7 @@ our $VERSION = '0.042';
     # Same thing:
     my $dt = DateTimeX::Easy->new("now");
 
-    # Uses Date::Manip's coolness:
+    # Uses ::F::Natural's coolness (similar in capability to Date::Manip)
     my $dt = DateTimeX::Easy->new("last monday");
 
     # ... but in 1969:
@@ -51,9 +51,19 @@ bulk of the parsing, with some custom tweaks to smooth out the rough edges (main
 
 =head2 DateTimeX::Easy->parse( ... )
 
+=head2 DateTimeX::Easy->parse_date( ... )
+
 =head2 DateTimeX::Easy->parse_datetime( ... )
 
-Parse the given date/time specification using ::F::Flexible or ::F::Natural and use the result to create a DateTimeX object. Returns a L<DateTime> object.
+=head2 DateTimeX::Easy->date( ... )
+
+=head2 DateTimeX::Easy->datetime( ... )
+
+=head2 DateTimeX::Easy->new_date( ... )
+
+=head2 DateTimeX::Easy->new_datetime( ... )
+
+Parse the given date/time specification using ::F::Flexible or ::F::Natural and use the result to create a L<DateTime> object. Returns a L<DateTime> object.
 
 You can pass the following in:
 
@@ -72,10 +82,12 @@ You can pass the following in:
                 # * A question mark ('?'), which means to use the timezone parsed from the end of the string, e.g. "... GMT" or "... US/Eastern"
                 #
                 # - If neither "timezone" nor "time_zone" is set, then we'll default to using "?", and then "floating"
-                # - If a DateTime object was passed in, then the object's timezone will be used unless over-ridden.
+                # - If a DateTime object was passed in, then the object's timezone will be used unless overridden.
                 # - Either "time_zone" or "timezone" will work, but "time_zone" has precedence
-                # - WARNING: No timezone conversion takes place, the timezone is essentially appended to the datetime given.
+                # - WARNING: No timezone conversion takes place (unless "convert => 1" is set), the timezone is essentially appended to the datetime given.
                 # - See below for examples!
+
+    convert     # Set this flag to 1 if you want to actually perform the conversion be between the parsed timezone and the given timezone
 
     ... and anything else that you want to pass to the DateTime->new constructor
 
@@ -112,6 +124,8 @@ Timezone processing can be a little complicated.  Here are some examples:
     DateTimeX::Easy->parse($dt)->set_time_zone("PST8PDT"); # Will use "US/Pacific" as the timezone WITH conversion
                                                            # For example, "22:00 US/Eastern" will become "19:00 PST8PDT" 
 
+    DateTimeX::Easy->parse($dt, time_zone => "PST8PDT", convert => 1); # Will ALSO use "US/Pacific" as the timezone WITH conversion
+
 =head1 EXPORT
 
 =head2 parse( ... )
@@ -139,7 +153,7 @@ Most importantly, I wanted explicit control of the timezone setting at every ste
 
 =head1 SEE ALSO
 
-L<DateTimeX>, L<Date::Manip>
+L<DateTime>, L<DateTime::Format::Natural>, L<DateTime::Format::Flexible>, L<Date::Manip>
 
 =head1 AUTHOR
 
@@ -210,6 +224,7 @@ sub new {
     my %in = @_;
     $parse = delete $in{parse} if exists $in{parse};
     my $truncate = delete $in{truncate};
+    my $convert = delete $in{convert};
 
     my ($saw_time_zone, $time_zone);
     $saw_time_zone = exists $in{timezone} || exists $in{time_zone};
@@ -217,16 +232,18 @@ sub new {
     $time_zone = delete $in{time_zone} if exists $in{time_zone}; # "time_zone" takes precedence over "timezone"
     $time_zone = "?" unless defined $time_zone;
 
-    my $parse_dt;
+    my ($parse_dt, $original_tz);
     if ($parse) {
-        if (blessed $parse && $parse->isa("DateTime")) {
+        if (blessed $parse && $parse->isa("DateTime")) { # We have a DateTime object as $parse
+            $original_tz = $parse->time_zone;
             $time_zone = $parse->time_zone unless $saw_time_zone;
             $parse_dt = $parse;
         }
         else {
-            eval {
+            eval { # Try ::F::Flexible first...
                 my $parse = $parse;
                 my $tz;
+                # ...but first, try to parse out any timezone information!
                 if ($parse =~ s/\s+([A-Za-z][A-Za-z0-9\/\._]*)\s*$//) { # Look for a timezone-like string at the end of $parse
                     $tz = $1;
                     $parse = "$parse $tz" and undef $tz if $tz && $tz =~ m/^[ap]\.?m\.?$/i; # Put back AM/PM if we accidentally slurped it out
@@ -235,9 +252,12 @@ sub new {
                     $tz = $1;
                 }
                 $parse_dt = DateTime::Format::Flexible->build($parse);
-                $time_zone = $tz if $time_zone eq "?"; 
+                if ($tz) {
+                    $time_zone = $tz if $time_zone eq "?"; 
+                    $original_tz = $tz;
+                }
             };
-            if ($@ || ! $parse_dt) {
+            if ($@ || ! $parse_dt) { # Failure, try ::F::Natural now...
                 eval {
                     local $SIG{__WARN__} = sub {}; # Make sure ::Natural/Date::Calc stay quiet... don't really like this, oh well...
                     $parse_dt = $natural_parser->parse_datetime($parse);
@@ -248,13 +268,20 @@ sub new {
     }
 
     $time_zone = "floating" if ! defined $time_zone || $time_zone eq "?";
+    my $new_tz = $time_zone;
 
     my %DateTime;
     $DateTime{$_} = $parse_dt->$_ for qw/year month day hour minute second nanosecond/;
-    $DateTime{time_zone} = $time_zone;
+    $DateTime{time_zone} = $new_tz;
     @DateTime{keys %in} = values %in;
     
     return unless my $dt = DateTime->new(%DateTime);
+
+    if ($convert) {
+        $dt->set_time_zone("floating");
+        $dt->set_time_zone($original_tz);
+        $dt->set_time_zone($new_tz);
+    }
 
     if ($truncate) {
         $truncate = $truncate->[1] if ref $truncate eq "ARRAY";
