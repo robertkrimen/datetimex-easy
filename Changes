@@ -2,7 +2,7 @@ TODO:
  - Add some syntactic sugar to make timezone conversion easier
  - Performs multiple conversion in one call (via [])
 
-0.041 Wednesday November 07 03:38:32 PST 2007:
+0.042 Wednesday November 07 03:38:32 PST 2007:
  - Updated requirements
 
 0.040 Wednesday November 07 03:18:06 PST 2007:
