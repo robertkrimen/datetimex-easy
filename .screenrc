@@ -1,14 +1,5 @@
-.PHONY: all test time clean distclean dist build distcheck upload distupload
+source $HOME/.screenrc
 
-all: test
-
-build: Build
-	./$<
-
-dist distclean test tardist: Build
-	./Build $@
-
-Build: Build.PL
-	perl $<
-
-clean: distclean
+screen 0
+stuff "vim -S \015"
+screen 1
