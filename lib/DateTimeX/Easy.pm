@@ -9,11 +9,11 @@ DateTimeX::Easy - Use DT::F::Flexible and DT::F::Natural for quick and easy Date
 
 =head1 VERSION
 
-Version 0.050
+Version 0.060
 
 =cut
 
-our $VERSION = '0.050';
+our $VERSION = '0.060';
 
 =head1 SYNOPSIS
 
@@ -34,7 +34,6 @@ our $VERSION = '0.050';
 
     # ... in US/Eastern: (This will NOT do a timezone conversion)
     my $dt = DateTimeX::Easy->new("last monday", year => 1969, nanosecond => 100, timezone => "US/Eastern");
-    ok($dt);
 
     # This WILL do a proper timezone conversion:
     my $dt = DateTimeX::Easy->new("last monday", year => 1969, nanosecond => 100, timezone => "US/Pacific");
@@ -88,6 +87,8 @@ You can pass the following in:
                 # - See below for examples!
 
     convert     # Set this flag to 1 if you want to actually perform the conversion be between the parsed timezone and the given timezone
+                # Optionally, set it to the timezone you want to convert to. In this case, "time_zone" is the original "old" timezone
+                # and "convert" is the "new" timezone. Furthermore, in this case, "time_zone" will become "local" if it's "floating".
 
     ... and anything else that you want to pass to the DateTime->new constructor
 
@@ -113,18 +114,24 @@ Timezone processing can be a little complicated.  Here are some examples:
 
     DateTimeX::Easy->parse("2007-07-01 10:32:10", time_zone => "?"); # Will use the floating timezone
 
+    DateTimeX::Easy->parse("2007-07-01 10:32:10 UTC", convert => "US/Pacific"); # Will convert from UTC to US/Pacific
+
+    DateTimeX::Easy->parse("2007-07-01 10:32:10", convert => "US/Pacific"); # Will convert from the local timezone to US/Pacific
+
     my $dt = DateTime->now->set_time_zone("US/Eastern");
     DateTimeX::Easy->parse($dt); # Will use US/Eastern as the timezone
 
     DateTimeX::Easy->parse($dt, time_zone => "floating"); # Will use a floating timezone
 
-    DateTimeX::Easy->parse($dt, time_zone => "PST8PDT"); # Will use "US/Pacific" as the timezone with NO conversion
-                                                         # For example, "22:00 US/Eastern" will become "22:00 PST8PDT" 
+    DateTimeX::Easy->parse($dt, time_zone => "US/Pacific"); # Will use US/Pacific as the timezone with NO conversion
+                                                            # For example, "22:00 US/Eastern" will become "22:00 PST8PDT" 
 
-    DateTimeX::Easy->parse($dt)->set_time_zone("PST8PDT"); # Will use "US/Pacific" as the timezone WITH conversion
-                                                           # For example, "22:00 US/Eastern" will become "19:00 PST8PDT" 
+    DateTimeX::Easy->parse($dt)->set_time_zone("US/Pacific"); # Will use US/Pacific as the timezone WITH conversion
+                                                              # For example, "22:00 US/Eastern" will become "19:00 PST8PDT" 
 
-    DateTimeX::Easy->parse($dt, time_zone => "PST8PDT", convert => 1); # Will ALSO use "US/Pacific" as the timezone WITH conversion
+    DateTimeX::Easy->parse($dt, time_zone => "US/Pacific", convert => 1); # Will ALSO use US/Pacific as the timezone WITH conversion
+
+    DateTimeX::Easy->parse($dt, time_zone => "US/Pacific", convert => "UTC"); # Will convert FROM US/Pacific TO UTC
 
 =head1 EXPORT
 
@@ -278,6 +285,14 @@ sub new {
     return unless my $dt = DateTime->new(%DateTime);
 
     if ($convert) {
+        if ($convert eq "1") {
+        }
+        else {
+            $original_tz = $new_tz;
+            $original_tz = "local" if $original_tz eq "floating";
+            $new_tz = $convert;
+        }
+        $original_tz = "local" unless defined $original_tz;
         $dt->set_time_zone("floating");
         $dt->set_time_zone($original_tz);
         $dt->set_time_zone($new_tz);
