@@ -5,15 +5,15 @@ use strict;
 
 =head1 NAME
 
-DateTimeX::Easy - Use DT::F::Flexible and DT::F::Natural for quick and easy DateTime creation
+DateTimeX::Easy - Parse a date/time string using the best method available
 
 =head1 VERSION
 
-Version 0.070
+Version 0.071
 
 =cut
 
-our $VERSION = '0.070';
+our $VERSION = '0.071';
 
 =head1 SYNOPSIS
 
@@ -41,8 +41,8 @@ our $VERSION = '0.070';
 
 =head1 DESCRIPTION
 
-DateTimeX::Easy makes DateTime object creation quick and easy. It uses DateTime::Format::Flexible and DateTime::Format::Natural to do the
-bulk of the parsing, with some custom tweaks to smooth out the rough edges (mainly concerning timezone detection).
+DateTimeX::Easy makes DateTime object creation quick and easy. It uses a variety of DateTime::Format packages to do the 
+bulk of the parsing, with some custom tweaks to smooth out the rough edges (mainly concerning timezone detection and selection).
 
 =head1 PARSING
 
@@ -61,6 +61,10 @@ A caveat, I actually use a modified version of DateParse in order to avoid DateP
 =item Natural - Was DT::F::Natural able to parse the input?
 
 Since this module barfs pretty loudly on strange input, we use a silent $SIG{__WARN__} to hide errors.
+
+=item Flexible - Was DT::F::Flexible able to parse the input?
+
+This step also looks at the string to see if there is any timezone information at the end.
 
 =item DateManip - Was DT::F::DateManip able to parse the input? (Only works if package is installed)
 
@@ -180,14 +184,19 @@ Same syntax as above. See above for more information.
 
 =head1 MOTIVATION
 
-Although I really like using DateTimeX for date/time handling, I was often frustrated by its inability to parse even the simplest of date/time strings.
-There does exist a wide variety of DateTimeX::Format::* modules, but they all have different interfaces and different capabilities.
-Coming from a Date::Manip background, I wanted something that gave me the power of ParseDate while still returning a DateTimeX object.
+Although I really like using DateTime for date/time handling, I was often frustrated by its inability to parse even the simplest of date/time strings.
+There does exist a wide variety of DateTime::Format::* modules, but they all have different interfaces and different capabilities.
+Coming from a Date::Manip background, I wanted something that gave me the power of ParseDate while still returning a DateTime object.
 Most importantly, I wanted explicit control of the timezone setting at every step of the way. DateTimeX::Easy is the result.
+
+=head1 THANKS
+
+Dave Rolsky and crew for writing L<DateTime>
 
 =head1 SEE ALSO
 
-L<DateTime>, L<DateTime::Format::Natural>, L<DateTime::Format::Flexible>, L<Date::Manip>
+L<DateTime>, L<DateTime::Format::ICal>, L<DateTime::Format::ParseDate>, L<DateTime::Format::Natural>, L<DateTime::Format::Flexible>,
+L<DateTime::Format::DateManip>, L<Date::Manip>
 
 =head1 AUTHOR
 
@@ -324,12 +333,18 @@ sub new {
     $time_zone = delete $in{timezone} if exists $in{timezone};
     $time_zone = delete $in{time_zone} if exists $in{time_zone}; # "time_zone" takes precedence over "timezone"
 
+#    my ($beginning_of, $end_of);
+
     my $parse_dt;
     if ($parse) {
         if (blessed $parse && $parse->isa("DateTime")) { # We have a DateTime object as $parse
             $parse_dt = $parse;
         }
         else {
+#            $beginning_of = $parse =~ s/^\s*beginning\s+of\s+//i;
+#            $beginning_of ||= $parse =~ s/^\s*start\s+of\s+//i;
+#            $end_of = $parse =~ s/^\s*end\s+of\s+//i unless $beginning_of;
+
             my @parser_order = $parser_order ? (ref $parser_order eq "ARRAY" ? @$parser_order : ($parser_order)) : @_parser_order;
             my (%parser_exclude);
             %parser_exclude = map { $_ => 1 } (ref $parser_exclude eq "ARRAY" ? @$parser_exclude : ($parser_exclude)) if $parser_exclude;
@@ -371,6 +386,9 @@ sub new {
         $truncate = (values %$truncate)[0] if ref $truncate eq "HASH";
         $dt->truncate(to => $truncate);
     }
+#    elsif ($beginning_of) {
+#        $dt->truncate(to => "day");
+#    }
 
     return $dt;
 }
