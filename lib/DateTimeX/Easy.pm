@@ -9,11 +9,11 @@ DateTimeX::Easy - Use DT::F::Flexible and DT::F::Natural for quick and easy Date
 
 =head1 VERSION
 
-Version 0.060
+Version 0.070
 
 =cut
 
-our $VERSION = '0.060';
+our $VERSION = '0.070';
 
 =head1 SYNOPSIS
 
@@ -44,6 +44,30 @@ our $VERSION = '0.060';
 DateTimeX::Easy makes DateTime object creation quick and easy. It uses DateTime::Format::Flexible and DateTime::Format::Natural to do the
 bulk of the parsing, with some custom tweaks to smooth out the rough edges (mainly concerning timezone detection).
 
+=head1 PARSING
+
+Currently, DateTimeX::Easy will attempt to parse input in the following order:
+
+=over
+
+=item DateTime - Is the input a DateTime object?
+
+=item ICal - Was DT::F::ICal able to parse the input? (Only works if the package is installed)
+
+=item DateParse - Was DT::F::DateParse able to parse the input?
+
+A caveat, I actually use a modified version of DateParse in order to avoid DateParse's default timezone selection.
+
+=item Natural - Was DT::F::Natural able to parse the input?
+
+Since this module barfs pretty loudly on strange input, we use a silent $SIG{__WARN__} to hide errors.
+
+=item DateManip - Was DT::F::DateManip able to parse the input? (Only works if package is installed)
+
+DateManip isn't very nice with preserving the input timezone, but it's here as a last resort.
+
+=back
+
 =head1 METHODS
 
 =head2 DateTimeX::Easy->new( ... )
@@ -67,28 +91,34 @@ Parse the given date/time specification using ::F::Flexible or ::F::Natural and 
 You can pass the following in:
 
     parse       # The string or DateTime object to parse.
+
     year        # A year to override the result of parsing
     month       # A month to override the result of parsing
     day         # A day to override the result of parsing
     hour        # A hour to override the result of parsing
     minute      # A minute to override the result of parsing
     second      # A second to override the result of parsing
+
     truncate    # A truncation parameter (e.g. year, day, month, week, etc.)
 
     time_zone   # - Can be:
-                # * A timezone (e.g. US/Pacific, UTC, etc.)
-                # * A DateTime special timezone (e.g. floating, local)
-                # * A question mark ('?'), which means to use the timezone parsed from the end of the string, e.g. "... GMT" or "... US/Eastern"
+    timezone    # * A timezone (e.g. US/Pacific, UTC, etc.)
+    tz          # * A DateTime special timezone (e.g. floating, local)
                 #
-                # - If neither "timezone" nor "time_zone" is set, then we'll default to using "?", and then "floating"
-                # - If a DateTime object was passed in, then the object's timezone will be used unless overridden.
-                # - Either "time_zone" or "timezone" will work, but "time_zone" has precedence
-                # - WARNING: No timezone conversion takes place (unless "convert => 1" is set), the timezone is essentially appended to the datetime given.
+                # - If neither "tz", "timezone", nor "time_zone" is set, then it'll use whatever is parsed.
+                # - If no timezone is parsed, then the default is floating.
+                # - If the given timezone is different from the parsed timezone,
+                #   then a time conversion will take place (unless "soft_time_zone_conversion" is set).
+                # - Either "time_zone", "timezone", "tz" will work (in that order), with "time_zone" having highest precedence
                 # - See below for examples!
 
-    convert     # Set this flag to 1 if you want to actually perform the conversion be between the parsed timezone and the given timezone
-                # Optionally, set it to the timezone you want to convert to. In this case, "time_zone" is the original "old" timezone
-                # and "convert" is the "new" timezone. Furthermore, in this case, "time_zone" will become "local" if it's "floating".
+    soft_time_zone_conversion   # Set this flag to 1 if you don't want the time to change when a given timezone is
+                                # different from a parsed timezone. For example, "10:00 UTC" soft converted to
+                                # PST8PDT would be "10:00 PST8PDT".
+
+    time_zone_if_floating       # The value of this option should be a valid timezone. If this option is set, then a DateTime object
+                                # with a floating timezone has it's timezone set to the value.
+    default_time_zone           # Same as "time_zone_if_floating"
 
     ... and anything else that you want to pass to the DateTime->new constructor
 
@@ -110,28 +140,25 @@ Timezone processing can be a little complicated.  Here are some examples:
 
     DateTimeX::Easy->parse("2007-07-01 10:32:10 US/Eastern"); # Will use US/Eastern as a timezone
 
-    DateTimeX::Easy->parse("2007-07-01 10:32:10 US/Eastern", time_zone => "?"); # Will again use US/Eastern as the timezone
+    DateTimeX::Easy->parse("2007-07-01 10:32:10"); # Will use the floating timezone
 
-    DateTimeX::Easy->parse("2007-07-01 10:32:10", time_zone => "?"); # Will use the floating timezone
+    DateTimeX::Easy->parse("2007-07-01 10:32:10", time_zone_if_floating => "local"); # Will use the local timezone
 
-    DateTimeX::Easy->parse("2007-07-01 10:32:10 UTC", convert => "US/Pacific"); # Will convert from UTC to US/Pacific
-
-    DateTimeX::Easy->parse("2007-07-01 10:32:10", convert => "US/Pacific"); # Will convert from the local timezone to US/Pacific
+    DateTimeX::Easy->parse("2007-07-01 10:32:10 UTC", time_zone => "US/Pacific"); # Will convert from UTC to US/Pacific
 
     my $dt = DateTime->now->set_time_zone("US/Eastern");
     DateTimeX::Easy->parse($dt); # Will use US/Eastern as the timezone
 
     DateTimeX::Easy->parse($dt, time_zone => "floating"); # Will use a floating timezone
 
-    DateTimeX::Easy->parse($dt, time_zone => "US/Pacific"); # Will use US/Pacific as the timezone with NO conversion
+    DateTimeX::Easy->parse($dt, time_zone => "US/Pacific", soft_time_zone_conversion => 1);
+                                                            # Will use US/Pacific as the timezone with NO conversion
                                                             # For example, "22:00 US/Eastern" will become "22:00 PST8PDT" 
 
     DateTimeX::Easy->parse($dt)->set_time_zone("US/Pacific"); # Will use US/Pacific as the timezone WITH conversion
                                                               # For example, "22:00 US/Eastern" will become "19:00 PST8PDT" 
 
-    DateTimeX::Easy->parse($dt, time_zone => "US/Pacific", convert => 1); # Will ALSO use US/Pacific as the timezone WITH conversion
-
-    DateTimeX::Easy->parse($dt, time_zone => "US/Pacific", convert => "UTC"); # Will convert FROM US/Pacific TO UTC
+    DateTimeX::Easy->parse($dt, time_zone => "US/Pacific"); # Will ALSO use US/Pacific as the timezone WITH conversion
 
 =head1 EXPORT
 
@@ -218,9 +245,64 @@ our @EXPORT_OK = qw/datetime parse parse_datetime parse_date new_datetime new_da
 use DateTime;
 use DateTime::Format::Natural;
 use DateTime::Format::Flexible;
+# use DateTime::Format::DateParse; # Unfortunately, not as useful to use because of that default "local" time zone business.
+use DateTimeX::Easy::DateParse; # Using this instead, hrm.
 use Scalar::Util qw/blessed/;
 
+my $have_ICal;
+eval {
+    require DateTime::Format::ICal;
+    $have_ICal = 1;
+};
+
+my $have_DateManip;
+eval {
+    require DateTime::Formate::DateManip;
+    $have_DateManip = 1;
+};
 my $natural_parser = DateTime::Format::Natural->new;
+
+my @_parser_order = qw/DateParse Natural Flexible/;
+unshift @_parser_order, qw/ICal/ if $have_ICal;
+push @_parser_order, qw/DateManip/ if $have_DateManip;
+my %_parser_source = (
+    ICal => sub {
+        return DateTime::Format::ICal->parse_datetime(shift);
+    },
+
+    DateParse => sub {
+        return DateTimeX::Easy::DateParse->parse_datetime(shift);
+    },
+    
+    Natural => sub {
+        local $SIG{__WARN__} = sub {}; # Make sure ::Natural/Date::Calc stay quiet... don't really like this, oh well...
+        my $dt = $natural_parser->parse_datetime(shift);
+        return unless $natural_parser->success;
+        return $dt;
+    },
+
+    Flexible => sub {
+        my $parse = shift;
+        my $time_zone;
+        # First, try to extract out any timezone information
+        if ($parse =~ s/\s+([A-Za-z][A-Za-z0-9\/\._]*)\s*$//) { # Look for a timezone-like string at the end of $parse
+            $time_zone = $1;
+            $parse = "$parse $time_zone" and undef $time_zone if $time_zone && $time_zone =~ m/^[ap]\.?m\.?$/i; # Put back AM/PM if we accidentally slurped it out
+        }
+        elsif ($parse =~ s/\s+([-+]\d+)\s*$//) {
+            $time_zone = $1;
+        }
+        return unless my $dt = DateTime::Format::Flexible->build($parse);
+        if ($time_zone) {
+            $dt->set_time_zone("floating");
+            $dt->set_time_zone($time_zone);
+        }
+    },
+
+    DateManip => sub {
+        return DateTime::Format::DateManip->parse_datetime(shift);
+    },
+);
 
 sub new {
     shift if $_[0] && $_[0] eq __PACKAGE__;
@@ -231,71 +313,57 @@ sub new {
     my %in = @_;
     $parse = delete $in{parse} if exists $in{parse};
     my $truncate = delete $in{truncate};
-    my $convert = delete $in{convert};
+    my $soft_time_zone_conversion = delete $in{soft_time_zone_conversion};
+    my $time_zone_if_floating = delete $in{default_time_zone};
+    $time_zone_if_floating = delete $in{time_zone_if_floating} if exists $in{time_zone_if_floating};
+    my $parser_order = delete $in{parser_order};
+    my $parser_exclude = delete $in{parser_exclude};
 
-    my ($saw_time_zone, $time_zone);
-    $saw_time_zone = exists $in{timezone} || exists $in{time_zone};
+    my ($time_zone);
+    $time_zone = delete $in{tz} if exists $in{tz};
     $time_zone = delete $in{timezone} if exists $in{timezone};
     $time_zone = delete $in{time_zone} if exists $in{time_zone}; # "time_zone" takes precedence over "timezone"
-    $time_zone = "?" unless defined $time_zone;
 
-    my ($parse_dt, $original_tz);
+    my $parse_dt;
     if ($parse) {
         if (blessed $parse && $parse->isa("DateTime")) { # We have a DateTime object as $parse
-            $original_tz = $parse->time_zone;
-            $time_zone = $parse->time_zone unless $saw_time_zone;
             $parse_dt = $parse;
         }
         else {
-            eval { # Try ::F::Flexible first...
-                my $parse = $parse;
-                my $tz;
-                # ...but first, try to parse out any timezone information!
-                if ($parse =~ s/\s+([A-Za-z][A-Za-z0-9\/\._]*)\s*$//) { # Look for a timezone-like string at the end of $parse
-                    $tz = $1;
-                    $parse = "$parse $tz" and undef $tz if $tz && $tz =~ m/^[ap]\.?m\.?$/i; # Put back AM/PM if we accidentally slurped it out
-                }
-                elsif ($parse =~ s/\s+([-+]\d+)\s*$//) {
-                    $tz = $1;
-                }
-                $parse_dt = DateTime::Format::Flexible->build($parse);
-                if ($tz) {
-                    $time_zone = $tz if $time_zone eq "?"; 
-                    $original_tz = $tz;
-                }
-            };
-            if ($@ || ! $parse_dt) { # Failure, try ::F::Natural now...
+            my @parser_order = $parser_order ? (ref $parser_order eq "ARRAY" ? @$parser_order : ($parser_order)) : @_parser_order;
+            my (%parser_exclude);
+            %parser_exclude = map { $_ => 1 } (ref $parser_exclude eq "ARRAY" ? @$parser_exclude : ($parser_exclude)) if $parser_exclude;
+            my %parser_source = %_parser_source;
+            while (! $parse_dt && @parser_order) {
+                my $parser = shift @parser_order;
+                next if $parser_exclude{$parser};
+                my $parser_code = $parser_source{$parser};
                 eval {
-                    local $SIG{__WARN__} = sub {}; # Make sure ::Natural/Date::Calc stay quiet... don't really like this, oh well...
-                    $parse_dt = $natural_parser->parse_datetime($parse);
-                    return unless $natural_parser->success;
+                    $parse_dt = $parser_code->($parse);
                 };
+                undef $parse_dt if $@;
             }
         }
+        return unless $parse_dt;
     }
 
-    $time_zone = "floating" if ! defined $time_zone || $time_zone eq "?";
-    my $new_tz = $time_zone;
-
     my %DateTime;
-    $DateTime{$_} = $parse_dt->$_ for qw/year month day hour minute second nanosecond/;
-    $DateTime{time_zone} = $new_tz;
+    $DateTime{time_zone} = "floating";
+    if ($parse_dt) {
+        $DateTime{$_} = $parse_dt->$_ for qw/year month day hour minute second nanosecond time_zone/;
+    }
     @DateTime{keys %in} = values %in;
     
     return unless my $dt = DateTime->new(%DateTime);
 
-    if ($convert) {
-        if ($convert eq "1") {
+    if ($time_zone) {
+        if ($soft_time_zone_conversion) {
+            $dt->set_time_zone("floating");
         }
-        else {
-            $original_tz = $new_tz;
-            $original_tz = "local" if $original_tz eq "floating";
-            $new_tz = $convert;
-        }
-        $original_tz = "local" unless defined $original_tz;
-        $dt->set_time_zone("floating");
-        $dt->set_time_zone($original_tz);
-        $dt->set_time_zone($new_tz);
+        $dt->set_time_zone($time_zone);
+    }
+    elsif ($time_zone_if_floating && $dt->time_zone->is_floating) {
+        $dt->set_time_zone($time_zone_if_floating);
     }
 
     if ($truncate) {
@@ -351,3 +419,114 @@ __END__
     @DateTime{keys %in} = values %in;
     $DateTime{time_zone} = $time_zone;
     return unless my $dt = DateTime->new(%DateTime);
+
+    if ($parse) {
+        if (blessed $parse && $parse->isa("DateTime")) { # We have a DateTime object as $parse
+            $parse_dt = $parse;
+            $original_tz = $parse->time_zone;
+            $time_zone = $parse->time_zone unless $saw_time_zone;
+            $parse_dt = $parse;
+        }
+        else {
+            
+            # Try ::F::DateParse
+            {
+                eval {
+                    $parse_dt = DateTime::Format::DateParse->parse_datetime($parse);
+                };
+            }
+
+            # Try ::F::Flexible
+            if ($@ || ! $parse_dt) {
+                eval {
+                    my $parse = $parse;
+                    my $tz;
+                    # ...but first, try to parse out any timezone information!
+                    if ($parse =~ s/\s+([A-Za-z][A-Za-z0-9\/\._]*)\s*$//) { # Look for a timezone-like string at the end of $parse
+                        $tz = $1;
+                        $parse = "$parse $tz" and undef $tz if $tz && $tz =~ m/^[ap]\.?m\.?$/i; # Put back AM/PM if we accidentally slurped it out
+                    }
+                    elsif ($parse =~ s/\s+([-+]\d+)\s*$//) {
+                        $tz = $1;
+                    }
+                    $parse_dt = DateTime::Format::Flexible->build($parse);
+                    if ($tz) {
+                        $time_zone = $tz if $time_zone eq "?"; 
+                        $original_tz = $tz;
+                    }
+                };
+            }
+            # Try ::F::Natural
+            if ($@ || ! $parse_dt) {
+                eval {
+                    local $SIG{__WARN__} = sub {}; # Make sure ::Natural/Date::Calc stay quiet... don't really like this, oh well...
+                    $parse_dt = $natural_parser->parse_datetime($parse);
+                    return unless $natural_parser->success;
+                };
+            }
+        }
+    }
+    shift if $_[0] && $_[0] eq __PACKAGE__;
+
+    my $parse;
+    $parse = shift if @_ % 2;
+
+    my %in = @_;
+    $parse = delete $in{parse} if exists $in{parse};
+    my $truncate = delete $in{truncate};
+    my $convert = delete $in{convert};
+
+    my ($saw_time_zone, $time_zone);
+    $saw_time_zone = exists $in{timezone} || exists $in{time_zone};
+    $time_zone = delete $in{timezone} if exists $in{timezone};
+    $time_zone = delete $in{time_zone} if exists $in{time_zone}; # "time_zone" takes precedence over "timezone"
+    $time_zone = "?" unless defined $time_zone;
+
+    my ($parse_dt, $original_tz);
+    if ($parse) {
+        if (blessed $parse && $parse->isa("DateTime")) { # We have a DateTime object as $parse
+            $parse_dt = $parse;
+        }
+        else {
+            while (! $parse_dt && @parser_order) {
+                my $parser = shift @parser_order;
+                my $parser_code = $parser{$parser};
+                eval {
+                    $parse_dt = $parser_code->($parse);
+                };
+                undef $parse_dt if $@;
+            }
+        }
+    }
+
+    $time_zone = "floating" if ! defined $time_zone || $time_zone eq "?";
+    my $new_tz = $time_zone;
+
+    my %DateTime;
+    $DateTime{$_} = $parse_dt->$_ for qw/year month day hour minute second nanosecond/;
+    $DateTime{time_zone} = $new_tz;
+    @DateTime{keys %in} = values %in;
+    
+    return unless my $dt = DateTime->new(%DateTime);
+
+    if ($convert) {
+        if ($convert eq "1") {
+        }
+        else {
+            $original_tz = $new_tz;
+            $original_tz = "local" if $original_tz eq "floating";
+            $new_tz = $convert;
+        }
+        $original_tz = "local" unless defined $original_tz;
+        $dt->set_time_zone("floating");
+        $dt->set_time_zone($original_tz);
+        $dt->set_time_zone($new_tz);
+    }
+
+    if ($truncate) {
+        $truncate = $truncate->[1] if ref $truncate eq "ARRAY";
+        $truncate = (values %$truncate)[0] if ref $truncate eq "HASH";
+        $dt->truncate(to => $truncate);
+    }
+
+    return $dt;
