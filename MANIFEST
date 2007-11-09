@@ -21,4 +21,4 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 t/01-DateTimeX-Easy.t
-
+lib/DateTimeX/Easy/DateParse.pm
