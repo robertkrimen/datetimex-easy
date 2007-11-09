@@ -9,11 +9,11 @@ DateTimeX::Easy - Parse a date/time string using the best method available
 
 =head1 VERSION
 
-Version 0.071
+Version 0.075
 
 =cut
 
-our $VERSION = '0.071';
+our $VERSION = '0.075';
 
 =head1 SYNOPSIS
 
@@ -266,7 +266,7 @@ eval {
 
 my $have_DateManip;
 eval {
-    require DateTime::Formate::DateManip;
+    require DateTime::Format::DateManip;
     $have_DateManip = 1;
 };
 my $natural_parser = DateTime::Format::Natural->new;
@@ -298,7 +298,7 @@ my %_parser_source = (
             $time_zone = $1;
             $parse = "$parse $time_zone" and undef $time_zone if $time_zone && $time_zone =~ m/^[ap]\.?m\.?$/i; # Put back AM/PM if we accidentally slurped it out
         }
-        elsif ($parse =~ s/\s+([-+]\d+)\s*$//) {
+        elsif ($parse =~ s/\s+([-+]\d{3,})\s*$//) {
             $time_zone = $1;
         }
         return unless my $dt = DateTime::Format::Flexible->build($parse);
@@ -306,6 +306,7 @@ my %_parser_source = (
             $dt->set_time_zone("floating");
             $dt->set_time_zone($time_zone);
         }
+        return $dt;
     },
 
     DateManip => sub {
@@ -333,7 +334,7 @@ sub new {
     $time_zone = delete $in{timezone} if exists $in{timezone};
     $time_zone = delete $in{time_zone} if exists $in{time_zone}; # "time_zone" takes precedence over "timezone"
 
-#    my ($beginning_of, $end_of);
+    my ($beginning_of, $end_of);
 
     my $parse_dt;
     if ($parse) {
@@ -341,9 +342,13 @@ sub new {
             $parse_dt = $parse;
         }
         else {
-#            $beginning_of = $parse =~ s/^\s*beginning\s+of\s+//i;
-#            $beginning_of ||= $parse =~ s/^\s*start\s+of\s+//i;
-#            $end_of = $parse =~ s/^\s*end\s+of\s+//i unless $beginning_of;
+
+            {
+                my $range = "year|month|day|hour|minute|second";
+                $beginning_of = $1 if $parse =~ s/^\s*begin(?:ning)?\s+($range)\s+of\s+//i;
+                $beginning_of = $1 if ! $beginning_of && $parse =~ s/^\s*start(?:ing)?\s+($range)\s+of\s+//i;
+                $end_of = $1 if ! $beginning_of && $parse =~ s/^\s*end(?:ing)?\s+($range)of\s+//i;
+            }
 
             my @parser_order = $parser_order ? (ref $parser_order eq "ARRAY" ? @$parser_order : ($parser_order)) : @_parser_order;
             my (%parser_exclude);
@@ -356,6 +361,7 @@ sub new {
                 eval {
                     $parse_dt = $parser_code->($parse);
                 };
+#                warn "$parse $parser $@";
                 undef $parse_dt if $@;
             }
         }
@@ -386,9 +392,14 @@ sub new {
         $truncate = (values %$truncate)[0] if ref $truncate eq "HASH";
         $dt->truncate(to => $truncate);
     }
-#    elsif ($beginning_of) {
-#        $dt->truncate(to => "day");
-#    }
+    elsif ($beginning_of) {
+        # Beta feature, doesn't work yet
+        $dt->truncate(to => lc $beginning_of);
+    }
+    elsif ($end_of) {
+        # Beta feature, doesn't work yet
+        # TODO Not ready yet
+    }
 
     return $dt;
 }

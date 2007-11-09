@@ -50,6 +50,8 @@ $dt = datetime(parse => "2007/01/01 23:22:01 PST8PDT", time_zone => "UTC");
 is("$dt", "2007-01-02T07:22:01");
 is($dt->time_zone->name, "UTC");
 
+ok(datetime("2007-10"));
+
 {
     $dt = DateTimeX::Easy->new("today");
     ok($dt);
