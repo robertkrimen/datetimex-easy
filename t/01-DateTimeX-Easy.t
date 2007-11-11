@@ -6,6 +6,12 @@ use warnings;
 use Test::More qw/no_plan/;
 use DateTimeX::Easy qw/parse_datetime datetime/;
 
+my $local_time_zone;
+eval {
+    $local_time_zone = DateTime::TimeZone->new(name => "local");
+};
+undef $local_time_zone if $@;
+
 my $dt;
 $dt = DateTimeX::Easy->new("2007/01/01");
 is("$dt", "2007-01-01T00:00:00");
@@ -50,7 +56,23 @@ $dt = datetime(parse => "2007/01/01 23:22:01 PST8PDT", time_zone => "UTC");
 is("$dt", "2007-01-02T07:22:01");
 is($dt->time_zone->name, "UTC");
 
-ok(datetime("2007-10"));
+ok($dt = datetime("2007-10"));
+is("$dt", "2007-10-01T00:00:00");
+is($dt->time_zone->name, "floating");
+
+#TODO: {
+#    ok($dt = datetime("beginning day of 2007-10-02"));
+#    is("$dt", "2007-10-01T00:00:00");
+#    is($dt->time_zone->name, "floating");
+
+#    ok($dt = datetime("end day of 2007-10-02"));
+#    is("$dt", "2007-10-31T00:00:00");
+#    is($dt->time_zone->name, "floating");
+
+#    ok($dt = datetime("last month of 2007"));
+#    is("$dt", "2007-12-01T00:00:00");
+#    is($dt->time_zone->name, "floating");
+#};
 
 {
     $dt = DateTimeX::Easy->new("today");
@@ -100,8 +122,11 @@ ok(datetime("2007-10"));
     ok($eg->time_zone->is_floating);
     is("$eg", "2007-07-01T22:32:10");
 
-    $eg = DateTimeX::Easy->parse("2007-07-01 10:32:10", time_zone_if_floating => "local"); # Will use the local timezone
-    is($eg->time_zone->name, DateTime::TimeZone->new(name => "local")->name);
+    SKIP: {
+        skip "Can't determine local timezone", 1 unless $local_time_zone;
+        $eg = DateTimeX::Easy->parse("2007-07-01 10:32:10", time_zone_if_floating => "local"); # Will use the local timezone
+        is($eg->time_zone->name, $local_time_zone->name);
+    }
 
     $eg = DateTimeX::Easy->parse("2007-07-01 10:32:10 UTC", time_zone => "US/Pacific"); # Will convert from UTC to US/Pacific
     is($eg->time_zone->name, "America/Los_Angeles");

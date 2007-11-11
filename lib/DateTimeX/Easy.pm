@@ -9,11 +9,11 @@ DateTimeX::Easy - Parse a date/time string using the best method available
 
 =head1 VERSION
 
-Version 0.075
+Version 0.076
 
 =cut
 
-our $VERSION = '0.075';
+our $VERSION = '0.076';
 
 =head1 SYNOPSIS
 
@@ -271,6 +271,22 @@ eval {
 };
 my $natural_parser = DateTime::Format::Natural->new;
 
+my %_truncate_range = qw/
+    month year
+    day month
+    hour day
+    minute hour
+    second minute
+    nanosecond second
+/;
+my %_delta_range = (
+    month => [qw/years months/],
+    day => [qw/months days/],
+    hour => [qw/days hours/],
+    minute => [qw/hours minutes/],
+    second => [qw/minutes seconds/],
+);
+
 my @_parser_order = qw/DateParse Natural Flexible/;
 unshift @_parser_order, qw/ICal/ if $have_ICal;
 push @_parser_order, qw/DateManip/ if $have_DateManip;
@@ -343,11 +359,10 @@ sub new {
         }
         else {
 
-            {
+            if (0) {
                 my $range = "year|month|day|hour|minute|second";
-                $beginning_of = $1 if $parse =~ s/^\s*begin(?:ning)?\s+($range)\s+of\s+//i;
-                $beginning_of = $1 if ! $beginning_of && $parse =~ s/^\s*start(?:ing)?\s+($range)\s+of\s+//i;
-                $end_of = $1 if ! $beginning_of && $parse =~ s/^\s*end(?:ing)?\s+($range)of\s+//i;
+                $beginning_of = $1 if $parse =~ s/^\s*(?:start|first|begin(?:ning)?)\s+($range)\s+of\s+//i;
+                $end_of = $1 if ! $beginning_of && $parse =~ s/^\s*(?:last|end(?:ing)?)\s+($range)\s+of\s+//i;
             }
 
             my @parser_order = $parser_order ? (ref $parser_order eq "ARRAY" ? @$parser_order : ($parser_order)) : @_parser_order;
@@ -392,14 +407,21 @@ sub new {
         $truncate = (values %$truncate)[0] if ref $truncate eq "HASH";
         $dt->truncate(to => $truncate);
     }
-    elsif ($beginning_of) {
-        # Beta feature, doesn't work yet
-        $dt->truncate(to => lc $beginning_of);
-    }
-    elsif ($end_of) {
-        # Beta feature, doesn't work yet
-        # TODO Not ready yet
-    }
+#    elsif ($beginning_of) {
+#        my $truncate = $_truncate_range{$beginning_of};
+#        $dt->truncate(to => $truncate);
+#    }
+#    elsif ($end_of) {
+#        my $truncate = $_truncate_range{$end_of};
+#        my $delta = $_delta_range{$end_of};
+#        if ($delta) {
+#            my ($add, $subtract) = @$delta;
+#            $dt->truncate(to => $truncate);
+#            for (qw/year month day hour minute second/) {
+#            }
+#            $dt->add($add => 1)->subtract($subtract => 1);
+#        }
+#    }
 
     return $dt;
 }
