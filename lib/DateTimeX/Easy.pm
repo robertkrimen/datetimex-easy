@@ -11,11 +11,11 @@ DateTimeX::Easy - Parse a date/time string using the best method available
 
 =head1 VERSION
 
-Version 0.080
+Version 0.081
 
 =cut
 
-our $VERSION = '0.080';
+our $VERSION = '0.081';
 
 =head1 SYNOPSIS
 
@@ -40,6 +40,11 @@ our $VERSION = '0.080';
     # This WILL do a proper timezone conversion:
     my $dt = DateTimeX::Easy->new("last monday", year => 1969, nanosecond => 100, timezone => "US/Pacific");
     $dt->set_time_zone("US/Eastern");
+
+    # Custom DateTimeX ability:
+    my $dt = DateTimeX::Easy->new("last second of last month");
+    $dt = DateTimeX::Easy->new("last second of first month of last year");
+    $dt = DateTimeX::Easy->new("last second of first month of 2000");
 
 =head1 DESCRIPTION
 
@@ -80,6 +85,8 @@ DateTimeX::Easy also provides additional parsing and transformation for input li
 
     "first day of last month"
     "last day of last month"
+    "last day of this month"
+    "last day of next month"
     "last second of first month of last year"
     "ending day of month of 2007-10-02"
     "last second of first month of year of 2005"
@@ -423,7 +430,7 @@ sub new {
                 }
                 my $last_parse = $parse;
                 my $period;
-                if ($parse =~ s/^\s*(start|first|last|(?:begin|end)(?:ning)?)\s+(year|month|day|hour|minute|second)(?:\s+of\s+)?//) {
+                if ($parse =~ s/^\s*(start|this|next|first|last|(?:begin|end)(?:ning)?)\s+(year|month|day|hour|minute|second)(?:\s+of\s+)?//) {
                     $period = $2;
                     $last_delta->{add} = [ "${period}s" => 1 ] if $last_delta && $last_delta->{last};
                     push @delta, { truncate => $period};
