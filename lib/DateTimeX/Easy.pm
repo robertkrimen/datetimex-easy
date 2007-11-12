@@ -3,17 +3,19 @@ package DateTimeX::Easy;
 use warnings;
 use strict;
 
+use constant DEBUG => 0;
+
 =head1 NAME
 
 DateTimeX::Easy - Parse a date/time string using the best method available
 
 =head1 VERSION
 
-Version 0.076
+Version 0.080
 
 =cut
 
-our $VERSION = '0.076';
+our $VERSION = '0.080';
 
 =head1 SYNOPSIS
 
@@ -71,6 +73,40 @@ This step also looks at the string to see if there is any timezone information a
 DateManip isn't very nice with preserving the input timezone, but it's here as a last resort.
 
 =back
+
+=head1 "last second of first month of year of 2005"
+
+DateTimeX::Easy also provides additional parsing and transformation for input like:
+
+    "first day of last month"
+    "last day of last month"
+    "last second of first month of last year"
+    "ending day of month of 2007-10-02"
+    "last second of first month of year of 2005"
+    "last second of last month of year of 2005"
+    "beginning day of month of 2007-10-02"
+    "last month of year of 2007"
+
+It will look at each sequence of "<first|last> of <period>" and do ->add, ->subtract, and ->truncate operations on the parsed DateTime object
+
+Also, It's best to be as explicit as possible; the following will work:
+
+    "last month of 2007"
+    "last second of last month of 2005"
+    "beginning day of 2007-10-02"
+
+This won't, though:
+
+    "last day of 2007"
+
+You'll have to do this instead:
+
+    "last day of year of 2007"
+
+The reason is that the date portion is opaque to the parser. It doesn't know whether it has "2007" or "2007-10" or "now" as the last input. To fix this, you can
+give a hint to the parser, like "<period> of <date/time>" (as in "year of 2007" above).
+
+WARNING: This feature is still somewhat new, so there may be bugs lurking about. Please forward failing tests/scenarios.
 
 =head1 METHODS
 
@@ -286,6 +322,15 @@ my %_delta_range = (
     minute => [qw/hours minutes/],
     second => [qw/minutes seconds/],
 );
+my %_first_or_last = qw/
+    first       first
+    last        last
+    begin       first
+    beginning   first
+    start       first
+    end         last
+    ending      last
+/;
 
 my @_parser_order = qw/DateParse Natural Flexible/;
 unshift @_parser_order, qw/ICal/ if $have_ICal;
@@ -350,8 +395,9 @@ sub new {
     $time_zone = delete $in{timezone} if exists $in{timezone};
     $time_zone = delete $in{time_zone} if exists $in{time_zone}; # "time_zone" takes precedence over "timezone"
 
-    my ($beginning_of, $end_of);
+    my @delta;
 
+    my $original_parse = $parse;
     my $parse_dt;
     if ($parse) {
         if (blessed $parse && $parse->isa("DateTime")) { # We have a DateTime object as $parse
@@ -359,10 +405,47 @@ sub new {
         }
         else {
 
-            if (0) {
-                my $range = "year|month|day|hour|minute|second";
-                $beginning_of = $1 if $parse =~ s/^\s*(?:start|first|begin(?:ning)?)\s+($range)\s+of\s+//i;
-                $end_of = $1 if ! $beginning_of && $parse =~ s/^\s*(?:last|end(?:ing)?)\s+($range)\s+of\s+//i;
+            if (1) {
+                my ($last_delta);
+                while ($parse =~ s/^\s*(start|first|last|(?:begin|end)(?:ning)?)\s+(year|month|day|hour|minute|second)\s+of\s+//i) {
+                    my $first_or_last = $1;
+                    $first_or_last = $_first_or_last{lc $first_or_last};
+                    my $period = $2;
+                    $last_delta->{add} = [ "${period}s" => 1 ] if $last_delta;
+                    push @delta, $last_delta = my $delta = { period => $period };
+                    if ($first_or_last ne "first") {
+                        $delta->{last} = 1;
+                        $delta->{subtract} = [ "${period}s" => 1 ];
+                    }
+                    else {
+                        $delta->{first} = 1;
+                    }
+                }
+                my $last_parse = $parse;
+                my $period;
+                if ($parse =~ s/^\s*(start|first|last|(?:begin|end)(?:ning)?)\s+(year|month|day|hour|minute|second)(?:\s+of\s+)?//) {
+                    $period = $2;
+                    $last_delta->{add} = [ "${period}s" => 1 ] if $last_delta && $last_delta->{last};
+                    push @delta, { truncate => $period};
+                    $parse = $last_parse unless $parse;
+                }
+                elsif ($parse =~ s/^\s*(year|month|day|hour|minute|second)\s+of\s+//i) {
+                    $period = $1;
+                    $last_delta->{add} = [ "${period}s" => 1 ] if $last_delta && $last_delta->{last};
+                    push @delta, { truncate => $period };
+                }
+                elsif (@delta) {
+                    $period = $last_delta->{period};
+                    my $truncate = $_truncate_range{$period};
+                    push @delta, my $delta = { truncate => $truncate };
+                    my $delta_range = $_delta_range{$period};
+                    if ($delta_range) {
+                        my ($add, $subtract) = @$delta_range;
+                        if ($last_delta->{last}) {
+                            $last_delta->{add} = [ "${add}" => 1 ];
+                        }
+                    }
+                }
             }
 
             my @parser_order = $parser_order ? (ref $parser_order eq "ARRAY" ? @$parser_order : ($parser_order)) : @_parser_order;
@@ -376,7 +459,7 @@ sub new {
                 eval {
                     $parse_dt = $parser_code->($parse);
                 };
-#                warn "$parse $parser $@";
+                warn "$parse $parser \$\@: $@" if DEBUG;
                 undef $parse_dt if $@;
             }
         }
@@ -407,6 +490,36 @@ sub new {
         $truncate = (values %$truncate)[0] if ref $truncate eq "HASH";
         $dt->truncate(to => $truncate);
     }
+    elsif (@delta) {
+        if (DEBUG) {
+            require YAML;
+            warn "$original_parse => $parse => $dt";
+        }
+        for my $delta (reverse @delta) {
+            warn YAML::Dump($delta) if DEBUG;
+            if ($delta->{truncate}) {
+                $dt->truncate(to => $delta->{truncate});
+            }
+            else {
+                $dt->add(@{ $delta->{add} }) if $delta->{add};
+                $dt->subtract(@{ $delta->{subtract} }) if $delta->{subtract};
+            }
+        }
+    }
+
+    return $dt;
+}
+*parse = \&new;
+*parse_date = \&new;
+*parse_datetime = \&new;
+*date = \&new;
+*datetime = \&new;
+*new_date = \&new;
+*new_datetime = \&new;
+
+1; # End of DateTimeX::Easy
+
+__END__
 #    elsif ($beginning_of) {
 #        my $truncate = $_truncate_range{$beginning_of};
 #        $dt->truncate(to => $truncate);
@@ -423,19 +536,6 @@ sub new {
 #        }
 #    }
 
-    return $dt;
-}
-*parse = \&new;
-*parse_date = \&new;
-*parse_datetime = \&new;
-*date = \&new;
-*datetime = \&new;
-*new_date = \&new;
-*new_datetime = \&new;
-
-1; # End of DateTimeX::Easy
-
-__END__
     my ($tz, $tz_offset);
     my %DateTime;
     if ($parse) {

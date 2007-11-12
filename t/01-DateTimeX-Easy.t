@@ -60,19 +60,29 @@ ok($dt = datetime("2007-10"));
 is("$dt", "2007-10-01T00:00:00");
 is($dt->time_zone->name, "floating");
 
-#TODO: {
-#    ok($dt = datetime("beginning day of 2007-10-02"));
-#    is("$dt", "2007-10-01T00:00:00");
-#    is($dt->time_zone->name, "floating");
+ok($dt = datetime("beginning day of month of 2007-10-02"));
+is("$dt", "2007-10-01T00:00:00");
+is($dt->time_zone->name, "floating");
 
-#    ok($dt = datetime("end day of 2007-10-02"));
-#    is("$dt", "2007-10-31T00:00:00");
-#    is($dt->time_zone->name, "floating");
+ok($dt = datetime("end day of month of 2007-10-02"));
+is("$dt", "2007-10-31T00:00:00");
+is($dt->time_zone->name, "floating");
 
-#    ok($dt = datetime("last month of 2007"));
-#    is("$dt", "2007-12-01T00:00:00");
-#    is($dt->time_zone->name, "floating");
-#};
+ok($dt = datetime("last month of year of 2007"));
+is("$dt", "2007-12-01T00:00:00");
+is($dt->time_zone->name, "floating");
+
+ok($dt = datetime("beginning day of 2007-10-02"));
+is("$dt", "2007-10-01T00:00:00");
+is($dt->time_zone->name, "floating");
+
+ok($dt = datetime("end day of 2007-10-02"));
+is("$dt", "2007-10-31T00:00:00");
+is($dt->time_zone->name, "floating");
+
+ok($dt = datetime("last month of 2007"));
+is("$dt", "2007-12-01T00:00:00");
+is($dt->time_zone->name, "floating");
 
 {
     $dt = DateTimeX::Easy->new("today");
