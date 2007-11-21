@@ -84,6 +84,16 @@ ok($dt = datetime("last month of 2007"));
 is("$dt", "2007-12-01T00:00:00");
 is($dt->time_zone->name, "floating");
 
+eval {
+    datetime("last month of 2007", ambiguous => 0);
+};
+ok($@);
+like($@, qr/Can't parse/);
+
+ok($dt = datetime("last month of year of 2007", ambiguous => 0));
+is("$dt", "2007-12-01T00:00:00");
+is($dt->time_zone->name, "floating");
+
 {
     $dt = DateTimeX::Easy->new("today");
     ok($dt);

@@ -11,11 +11,11 @@ DateTimeX::Easy - Parse a date/time string using the best method available
 
 =head1 VERSION
 
-Version 0.081
+Version 0.082
 
 =cut
 
-our $VERSION = '0.081';
+our $VERSION = '0.082';
 
 =head1 SYNOPSIS
 
@@ -167,6 +167,11 @@ You can pass the following in:
                                 # with a floating timezone has it's timezone set to the value.
     default_time_zone           # Same as "time_zone_if_floating"
 
+    ambiguous   # Set this flag to 0 if you want to disallow ambiguous input like:
+                # "last day of 2007" or "first minute of April"
+                # This will require you to specify them as "last day of year of 2007" and "first minute of month of April"
+                # instead. This flag is 1 (false) by default.
+
     ... and anything else that you want to pass to the DateTime->new constructor
 
 If C<truncate> is specificied, then DateTime->truncate will be run after object creation.
@@ -300,6 +305,7 @@ use DateTime::Format::Flexible;
 # use DateTime::Format::DateParse; # Unfortunately, not as useful to use because of that default "local" time zone business.
 use DateTimeX::Easy::DateParse; # Using this instead, hrm.
 use Scalar::Util qw/blessed/;
+use Carp;
 
 my $have_ICal;
 eval {
@@ -396,6 +402,8 @@ sub new {
     $time_zone_if_floating = delete $in{time_zone_if_floating} if exists $in{time_zone_if_floating};
     my $parser_order = delete $in{parser_order};
     my $parser_exclude = delete $in{parser_exclude};
+    my $ambiguous = 1;
+    $ambiguous = delete $in{ambiguous} if exists $in{ambiguous};
 
     my ($time_zone);
     $time_zone = delete $in{tz} if exists $in{tz};
@@ -413,6 +421,7 @@ sub new {
         else {
 
             if (1) {
+                my $got_ambiguous;
                 my ($last_delta);
                 while ($parse =~ s/^\s*(start|first|last|(?:begin|end)(?:ning)?)\s+(year|month|day|hour|minute|second)\s+of\s+//i) {
                     my $first_or_last = $1;
@@ -442,6 +451,7 @@ sub new {
                     push @delta, { truncate => $period };
                 }
                 elsif (@delta) {
+                    $got_ambiguous = 1;
                     $period = $last_delta->{period};
                     my $truncate = $_truncate_range{$period};
                     push @delta, my $delta = { truncate => $truncate };
@@ -453,6 +463,8 @@ sub new {
                         }
                     }
                 }
+
+                croak "Can't parse \"$original_parse\" since it's too ambiguous" if $got_ambiguous && ! $ambiguous;
             }
 
             my @parser_order = $parser_order ? (ref $parser_order eq "ARRAY" ? @$parser_order : ($parser_order)) : @_parser_order;
