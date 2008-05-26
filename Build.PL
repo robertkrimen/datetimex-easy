@@ -1,1 +1,0 @@
-require qw/Makefile.PL/;
