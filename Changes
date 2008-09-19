@@ -2,6 +2,11 @@ TODO:
  - Add some syntactic sugar to make timezone conversion easier
  - Performs multiple conversion in one call (via [])
 
+0.083 Friday September 19 16:32:17 PDT 2008:
+ - Import into github: git://github.com/robertkrimen/datetimex-easy.git
+ - Now require ::ICal and ::DateManip
+ - Dropped Build.PL
+
 0.082 Wednesday November 21 00:12:42 PST 2007:
  - Added "ambiguous" flag to disallow ambiguous input
 

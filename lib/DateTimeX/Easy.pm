@@ -15,7 +15,7 @@ Version 0.082
 
 =cut
 
-our $VERSION = '0.082';
+our $VERSION = '0.083';
 
 =head1 SYNOPSIS
 
@@ -59,7 +59,7 @@ Currently, DateTimeX::Easy will attempt to parse input in the following order:
 
 =item DateTime - Is the input a DateTime object?
 
-=item ICal - Was DT::F::ICal able to parse the input? (Only works if the package is installed)
+=item ICal - Was DT::F::ICal able to parse the input?
 
 =item DateParse - Was DT::F::DateParse able to parse the input?
 
@@ -73,7 +73,7 @@ Since this module barfs pretty loudly on strange input, we use a silent $SIG{__W
 
 This step also looks at the string to see if there is any timezone information at the end.
 
-=item DateManip - Was DT::F::DateManip able to parse the input? (Only works if package is installed)
+=item DateManip - Was DT::F::DateManip able to parse the input?
 
 DateManip isn't very nice with preserving the input timezone, but it's here as a last resort.
 
@@ -243,12 +243,31 @@ Dave Rolsky and crew for writing L<DateTime>
 
 =head1 SEE ALSO
 
-L<DateTime>, L<DateTime::Format::ICal>, L<DateTime::Format::ParseDate>, L<DateTime::Format::Natural>, L<DateTime::Format::Flexible>,
-L<DateTime::Format::DateManip>, L<Date::Manip>
+L<DateTime>
+
+L<DateTime::Format::Natural>
+
+L<DateTime::Format::Flexible>
+
+L<DateTime::Format::DateManip>
+
+L<DateTime::Format::ParseDate>
+
+L<DateTime::Format::ICal>
+
+L<Date::Manip>
 
 =head1 AUTHOR
 
 Robert Krimen, C<< <rkrimen at cpan.org> >>
+
+=head1 SOURCE
+
+You can contribute or fork this project via GitHub:
+
+L<http://github.com/robertkrimen/datetimex-easy/tree/master>
+
+    git clone git://github.com/robertkrimen/datetimex-easy.git DateTimeX-Easy
 
 =head1 BUGS
 

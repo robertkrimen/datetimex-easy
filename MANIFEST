@@ -5,14 +5,14 @@ Makefile.PL
 README
 lib/DateTimeX/Easy.pm
 t/00-load.t
-t/pod-coverage.t
-t/pod.t
-Build.PL
+t/release/boilerplate.t
+t/release/pod-coverage.t
+t/release/pod.t
+t/01-basic.t
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
 inc/Module/Install/AutoInstall.pm
 inc/Module/Install/Base.pm
-inc/Module/Install/Build.pm
 inc/Module/Install/Can.pm
 inc/Module/Install/Fetch.pm
 inc/Module/Install/Include.pm
@@ -20,5 +20,4 @@ inc/Module/Install/Makefile.pm
 inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
-t/01-DateTimeX-Easy.t
 lib/DateTimeX/Easy/DateParse.pm
