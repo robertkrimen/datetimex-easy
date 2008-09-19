@@ -44,8 +44,7 @@ PARSING
     order:
 
     DateTime - Is the input a DateTime object?
-    ICal - Was DT::F::ICal able to parse the input? (Only works if the
-    package is installed)
+    ICal - Was DT::F::ICal able to parse the input?
     DateParse - Was DT::F::DateParse able to parse the input?
         A caveat, I actually use a modified version of DateParse in order to
         avoid DateParse's default timezone selection.
@@ -58,8 +57,7 @@ PARSING
         This step also looks at the string to see if there is any timezone
         information at the end.
 
-    DateManip - Was DT::F::DateManip able to parse the input? (Only works if
-    package is installed)
+    DateManip - Was DT::F::DateManip able to parse the input?
         DateManip isn't very nice with preserving the input timezone, but
         it's here as a last resort.
 
@@ -221,12 +219,29 @@ THANKS
     Dave Rolsky and crew for writing DateTime
 
 SEE ALSO
-    DateTime, DateTime::Format::ICal, DateTime::Format::ParseDate,
-    DateTime::Format::Natural, DateTime::Format::Flexible,
-    DateTime::Format::DateManip, Date::Manip
+    DateTime
+
+    DateTime::Format::Natural
+
+    DateTime::Format::Flexible
+
+    DateTime::Format::DateManip
+
+    DateTime::Format::ParseDate
+
+    DateTime::Format::ICal
+
+    Date::Manip
 
 AUTHOR
     Robert Krimen, "<rkrimen at cpan.org>"
+
+SOURCE
+    You can contribute or fork this project via GitHub:
+
+    <http://github.com/robertkrimen/datetimex-easy/tree/master>
+
+        git clone git://github.com/robertkrimen/datetimex-easy.git DateTimeX-Easy
 
 BUGS
     Please report any bugs or feature requests to "bug-datetime-easy at
