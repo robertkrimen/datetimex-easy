@@ -9,6 +9,7 @@ t/release/boilerplate.t
 t/release/pod-coverage.t
 t/release/pod.t
 t/01-basic.t
+t/02-tz-parse.t
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
 inc/Module/Install/AutoInstall.pm
