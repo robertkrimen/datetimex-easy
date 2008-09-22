@@ -11,11 +11,11 @@ DateTimeX::Easy - Parse a date/time string using the best method available
 
 =head1 VERSION
 
-Version 0.083_1
+Version 0.083_2
 
 =cut
 
-our $VERSION = '0.083_1';
+our $VERSION = '0.083_2';
 
 =head1 SYNOPSIS
 
@@ -364,7 +364,11 @@ my %_first_or_last = qw/
     ending      last
 /;
 
-my @_parser_order = qw/DateParse Natural Flexible/;
+my @_parser_order = qw/
+    Flexible
+    DateParse
+    Natural
+/;
 unshift @_parser_order, qw/ICal/ if $have_ICal;
 push @_parser_order, qw/DateManip/ if $have_DateManip;
 my %_parser_source = (
@@ -387,12 +391,36 @@ my %_parser_source = (
         my $parse = shift;
         my $time_zone;
         # First, try to extract out any timezone information
-        if ($parse =~ s/\s+([A-Za-z][A-Za-z0-9\/\._]*)\s*$//) { # Look for a timezone-like string at the end of $parse
-            $time_zone = $1;
-            $parse = "$parse $time_zone" and undef $time_zone if $time_zone && $time_zone =~ m/^[ap]\.?m\.?$/i; # Put back AM/PM if we accidentally slurped it out
-        }
-        elsif ($parse =~ s/\s+([-+]\d{3,})\s*$//) {
-            $time_zone = $1;
+        {
+            ##################################################
+            # 2008-09-16 13:23:57 Eastern Daylight (?:Time)? #
+            ##################################################
+            if ($parse =~ s/\s+(?:(Eastern|Central|Mountain|Pacific)\s+(?:Daylight|Standard)(?:\s+Time)?).*$//) {
+                $time_zone = "US/$1";
+            }
+            ##################################
+            # 2008-09-16 13:23:57 US/Eastern #
+            ##################################
+            elsif ($parse =~ s/\s+([A-Za-z][A-Za-z0-9\/\._]*)\s*$//) { # Look for a timezone-like string at the end of $parse
+                $time_zone = $1;
+                $parse = "$parse $time_zone" and undef $time_zone if $time_zone && $time_zone =~ m/^[ap]\.?m\.?$/i; # Put back AM/PM if we accidentally slurped it out
+            }
+            #########################################################
+            # 2008-09-16 13:23:57 Eastern Daylight Time (GMT+05:00) #
+            #########################################################
+            elsif ($parse =~ s/(?:\s+[A-Z]\w+)*\s+\(?(?:GMT|UTC)?([-+]\d{2}:\d{2})\)?\s*$//) {
+                $time_zone = $1;
+            }
+# Flexible can't seem to parse (GMT+0:500)
+#            elsif ($parse =~ s/(?:\s+[A-Z]\w+)*(\s+\(GMT[-+]\d{2}:\d{2}\)\s*)$//) {
+#                $parse = "$parse $1";
+#            }
+            #############################
+            # 2008-09-16 13:23:57 +0500 #
+            #############################
+            elsif ($parse =~ s/\s+([-+]\d{3,})\s*$//) {
+                $time_zone = $1;
+            }
         }
         return unless my $dt = DateTime::Format::Flexible->build($parse);
         if ($time_zone) {
@@ -490,14 +518,28 @@ sub new {
             my (%parser_exclude);
             %parser_exclude = map { $_ => 1 } (ref $parser_exclude eq "ARRAY" ? @$parser_exclude : ($parser_exclude)) if $parser_exclude;
             my %parser_source = %_parser_source;
+            if (DEBUG) {
+                warn "Parse $parse\n";
+            }
             while (! $parse_dt && @parser_order) {
                 my $parser = shift @parser_order;
                 next if $parser_exclude{$parser};
+                # warn "Try $parser:\n" if DEBUG;
                 my $parser_code = $parser_source{$parser};
                 eval {
                     $parse_dt = $parser_code->($parse);
                 };
-                warn "$parse $parser \$\@: $@" if DEBUG;
+                if (DEBUG) {
+                    if ($@) {
+                        warn "FAIL $parser: $@\n";
+                    }
+                    elsif ($parse_dt) {
+                        warn "PASS $parser: $parse_dt\n"; 
+                    }
+                    else {
+                        warn "FAIL $parser\n";
+                    }
+                }
                 undef $parse_dt if $@;
             }
         }
