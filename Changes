@@ -2,6 +2,12 @@ TODO:
  - Add some syntactic sugar to make timezone conversion easier
  - Performs multiple conversion in one call (via [])
 
+0.085:
+ - Integrated a patch of some broken tests (thanks DPAVLIN)
+
+0.084:
+ - Formal release of .083+
+
 0.083_2 Monday September 22 13:48:22 PDT 2008:
  - Added parsing and tests for http://rt.cpan.org/Public/Bug/Display.html?id=39373
  - Made ::Flexible take precedence over ::DateParse (for tz handling)
