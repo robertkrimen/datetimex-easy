@@ -11,11 +11,11 @@ DateTimeX::Easy - Parse a date/time string using the best method available
 
 =head1 VERSION
 
-Version 0.085
+Version 0.086
 
 =cut
 
-our $VERSION = '0.085';
+our $VERSION = '0.086';
 
 =head1 SYNOPSIS
 
@@ -520,6 +520,10 @@ sub new {
             my %parser_source = %_parser_source;
             if (DEBUG) {
                 warn "Parse $parse\n";
+            }
+            # TODO Kinda hackish
+            if ($parse =~ m/^[1-9]\d{3}$/) { # If it's a four digit year... yeah, arbitrary
+                $parse_dt = DateTime->new(year => $parse);
             }
             while (! $parse_dt && @parser_order) {
                 my $parser = shift @parser_order;

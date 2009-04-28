@@ -257,16 +257,20 @@ SUPPORT
 
     You can also look for information at:
 
-    * RT: CPAN's request tracker
+    *   RT: CPAN's request tracker
+
         <http://rt.cpan.org/NoAuth/Bugs.html?Dist=DateTimeX-Easy>
 
-    * AnnoCPAN: Annotated CPAN documentation
+    *   AnnoCPAN: Annotated CPAN documentation
+
         <http://annocpan.org/dist/DateTimeX-Easy>
 
-    * CPAN Ratings
+    *   CPAN Ratings
+
         <http://cpanratings.perl.org/d/DateTimeX-Easy>
 
-    * Search CPAN
+    *   Search CPAN
+
         <http://search.cpan.org/dist/DateTimeX-Easy>
 
 ACKNOWLEDGEMENTS
