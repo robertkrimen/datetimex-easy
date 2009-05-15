@@ -2,6 +2,10 @@ TODO:
     - Add some syntactic sugar to make timezone conversion easier
     - Perform multiple conversions in one call (via [])
 
+0.087:
+    - TODO'd some tests that were breaking because of time zone weirdness
+    - The previous entry is an example of gooder english!
+
 0.086
     - Treat a 4 digit number as a year... Format::Flexible changed on how it interpreted them
 
