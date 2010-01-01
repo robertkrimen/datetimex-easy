@@ -25,7 +25,6 @@ _END_
 
     map { my ($pk, $vr) = split m/\s/; requires $pk => $vr || 0 } grep { ! /^\s*#/ } split m/\n/, <<_END_;
 DateTime
-DateTime::Format::DateParse
 DateTime::Format::Natural
 DateTime::Format::Flexible
 DateTime::Format::ICal

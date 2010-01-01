@@ -2,6 +2,9 @@ TODO:
     - Add some syntactic sugar to make timezone conversion easier
     - Perform multiple conversions in one call (via [])
 
+0.088:
+    - Remove DateTime::Format::DateParse from dependencies as fails lots of tests and not used
+
 0.087:
     - TODO'd some tests that were breaking because of time zone weirdness
     - The previous entry is an example of gooder english!
