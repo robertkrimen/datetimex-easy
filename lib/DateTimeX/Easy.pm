@@ -11,7 +11,7 @@ DateTimeX::Easy - Parse a date/time string using the best method available
 
 =head1 VERSION
 
-Version 0.087
+Version 0.088
 
 =cut
 

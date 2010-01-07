@@ -3,7 +3,7 @@ TODO:
     - Perform multiple conversions in one call (via [])
 
 0.088:
-    - Remove DateTime::Format::DateParse from dependencies as fails lots of tests and not used
+    - Remove DateTime::Format::DateParse from dependencies as fails lots of tests and not used (thanks ranguard)
 
 0.087:
     - TODO'd some tests that were breaking because of time zone weirdness

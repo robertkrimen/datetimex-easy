@@ -24,6 +24,8 @@ Test::Most
 _END_
 
     map { my ($pk, $vr) = split m/\s/; requires $pk => $vr || 0 } grep { ! /^\s*#/ } split m/\n/, <<_END_;
+Date::Parse
+Time::Zone
 DateTime
 DateTime::Format::Natural
 DateTime::Format::Flexible
