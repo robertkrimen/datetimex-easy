@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+use Dzpl
+    name => 'DateTimeX-Easy',
+    version => '0.088_1',
+    author => 'Robert Krimen <robertkrimen@gmail.com>',
+    license => 'Perl5',
+    copyright => 'Robert Krimen',
+
+    require => q/
+        Date::Parse
+        Time::Zone
+        DateTime
+        DateTime::Format::Natural
+        DateTime::Format::Flexible
+        DateTime::Format::ICal
+        Scalar::Util
+
+        [Test]
+        Test::Most
+    /,
+;
+
+{ plugin '@ROKR' }
+
