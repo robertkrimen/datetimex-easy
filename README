@@ -3,7 +3,7 @@ NAME
     available
 
 VERSION
-    version 0.087_1
+    version 0.088_1
 
 SYNOPSIS
         # Make DateTimeX object for "now":

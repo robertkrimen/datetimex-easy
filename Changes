@@ -2,8 +2,11 @@ TODO:
     - Add some syntactic sugar to make timezone conversion easier
     - Perform multiple conversions in one call (via [])
 
-0.087_1:
-    - Remove DateTime::Format::DateParse from dependencies as fails lots of tests and not used (thanks ranguard & jjn1056)
+0.088_1:
+    - Remove DateTime::Format::DateManip from dependencies due to instability in that package and its dependencies (thanks jjn1056)
+
+0.088:
+    - Remove DateTime::Format::DateParse from dependencies as fails lots of tests and not used (thanks ranguard)
 
 0.087:
     - TODO'd some tests that were breaking because of time zone weirdness
