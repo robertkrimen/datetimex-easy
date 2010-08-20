@@ -30,7 +30,6 @@ DateTime
 DateTime::Format::Natural
 DateTime::Format::Flexible
 DateTime::Format::ICal
-DateTime::Format::DateManip
 Scalar::Util
 _END_
 }
