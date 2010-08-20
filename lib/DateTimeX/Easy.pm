@@ -1,21 +1,10 @@
 package DateTimeX::Easy;
+# ABSTRACT: Parse a date/time string using the best method available
 
 use warnings;
 use strict;
 
 use constant DEBUG => 0;
-
-=head1 NAME
-
-DateTimeX::Easy - Parse a date/time string using the best method available
-
-=head1 VERSION
-
-Version 0.088
-
-=cut
-
-our $VERSION = '0.088';
 
 =head1 SYNOPSIS
 
@@ -257,10 +246,6 @@ L<DateTime::Format::ICal>
 
 L<Date::Manip>
 
-=head1 AUTHOR
-
-Robert Krimen, C<< <rkrimen at cpan.org> >>
-
 =head1 SOURCE
 
 You can contribute or fork this project via GitHub:
@@ -268,41 +253,6 @@ You can contribute or fork this project via GitHub:
 L<http://github.com/robertkrimen/datetimex-easy/tree/master>
 
     git clone git://github.com/robertkrimen/datetimex-easy.git DateTimeX-Easy
-
-=head1 BUGS
-
-Please report any bugs or feature requests to C<bug-datetime-easy at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DateTimeX-Easy>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc DateTimeX::Easy
-
-
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DateTimeX-Easy>
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/DateTimeX-Easy>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/DateTimeX-Easy>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/DateTimeX-Easy>
-
-=back
 
 =head1 ACKNOWLEDGEMENTS
 
@@ -601,167 +551,4 @@ sub new {
 *new_date = \&new;
 *new_datetime = \&new;
 
-1; # End of DateTimeX::Easy
-
-__END__
-#    elsif ($beginning_of) {
-#        my $truncate = $_truncate_range{$beginning_of};
-#        $dt->truncate(to => $truncate);
-#    }
-#    elsif ($end_of) {
-#        my $truncate = $_truncate_range{$end_of};
-#        my $delta = $_delta_range{$end_of};
-#        if ($delta) {
-#            my ($add, $subtract) = @$delta;
-#            $dt->truncate(to => $truncate);
-#            for (qw/year month day hour minute second/) {
-#            }
-#            $dt->add($add => 1)->subtract($subtract => 1);
-#        }
-#    }
-
-    my ($tz, $tz_offset);
-    my %DateTime;
-    if ($parse) {
-        if (blessed $parse && $parse->isa("DateTime")) {
-            $DateTime{$_} = $parse->$_ for qw/year month day hour minute second nanosecond time_zone/;
-            $tz = (delete $DateTime{time_zone})->name;
-            $time_zone = "?" unless $saw_time_zone;
-        }
-        else {
-            return unless ($parse, $tz, $tz_offset) = UnixDate($parse, q/%Y %m %d %H %M %S/, qw/%Z %z/);
-            @DateTime{qw/year month day hour minute second/} = split m/\s+/, $parse; 
-        }
-    }
-
-    if ($time_zone eq "?") { # Use the timezone from parsing
-        if (DateTime::TimeZone->is_valid_name($tz)) {
-            $time_zone = $tz;
-        }
-        else {
-            $time_zone = DateTime::Format::DateManip->get_dt_timezone($tz);
-            $time_zone = $tz_offset if $tz_offset && ! $time_zone;
-        }
-    }
-    elsif (DateTime::TimeZone->is_valid_name($time_zone)) { # User passed in a valid timezone already, we're done
-    }
-    else { # User passed in wonky timezone, let's see if we can match it up
-        my $_time_zone = $time_zone;
-        $time_zone = DateTime::Format::DateManip->get_dt_timezone($time_zone);
-        die "Don't understand time zone ($_time_zone)" unless $time_zone
-    }
-
-    @DateTime{keys %in} = values %in;
-    $DateTime{time_zone} = $time_zone;
-    return unless my $dt = DateTime->new(%DateTime);
-
-    if ($parse) {
-        if (blessed $parse && $parse->isa("DateTime")) { # We have a DateTime object as $parse
-            $parse_dt = $parse;
-            $original_tz = $parse->time_zone;
-            $time_zone = $parse->time_zone unless $saw_time_zone;
-            $parse_dt = $parse;
-        }
-        else {
-            
-            # Try ::F::DateParse
-            {
-                eval {
-                    $parse_dt = DateTime::Format::DateParse->parse_datetime($parse);
-                };
-            }
-
-            # Try ::F::Flexible
-            if ($@ || ! $parse_dt) {
-                eval {
-                    my $parse = $parse;
-                    my $tz;
-                    # ...but first, try to parse out any timezone information!
-                    if ($parse =~ s/\s+([A-Za-z][A-Za-z0-9\/\._]*)\s*$//) { # Look for a timezone-like string at the end of $parse
-                        $tz = $1;
-                        $parse = "$parse $tz" and undef $tz if $tz && $tz =~ m/^[ap]\.?m\.?$/i; # Put back AM/PM if we accidentally slurped it out
-                    }
-                    elsif ($parse =~ s/\s+([-+]\d+)\s*$//) {
-                        $tz = $1;
-                    }
-                    $parse_dt = DateTime::Format::Flexible->build($parse);
-                    if ($tz) {
-                        $time_zone = $tz if $time_zone eq "?"; 
-                        $original_tz = $tz;
-                    }
-                };
-            }
-            # Try ::F::Natural
-            if ($@ || ! $parse_dt) {
-                eval {
-                    local $SIG{__WARN__} = sub {}; # Make sure ::Natural/Date::Calc stay quiet... don't really like this, oh well...
-                    $parse_dt = $natural_parser->parse_datetime($parse);
-                    return unless $natural_parser->success;
-                };
-            }
-        }
-    }
-    shift if $_[0] && $_[0] eq __PACKAGE__;
-
-    my $parse;
-    $parse = shift if @_ % 2;
-
-    my %in = @_;
-    $parse = delete $in{parse} if exists $in{parse};
-    my $truncate = delete $in{truncate};
-    my $convert = delete $in{convert};
-
-    my ($saw_time_zone, $time_zone);
-    $saw_time_zone = exists $in{timezone} || exists $in{time_zone};
-    $time_zone = delete $in{timezone} if exists $in{timezone};
-    $time_zone = delete $in{time_zone} if exists $in{time_zone}; # "time_zone" takes precedence over "timezone"
-    $time_zone = "?" unless defined $time_zone;
-
-    my ($parse_dt, $original_tz);
-    if ($parse) {
-        if (blessed $parse && $parse->isa("DateTime")) { # We have a DateTime object as $parse
-            $parse_dt = $parse;
-        }
-        else {
-            while (! $parse_dt && @parser_order) {
-                my $parser = shift @parser_order;
-                my $parser_code = $parser{$parser};
-                eval {
-                    $parse_dt = $parser_code->($parse);
-                };
-                undef $parse_dt if $@;
-            }
-        }
-    }
-
-    $time_zone = "floating" if ! defined $time_zone || $time_zone eq "?";
-    my $new_tz = $time_zone;
-
-    my %DateTime;
-    $DateTime{$_} = $parse_dt->$_ for qw/year month day hour minute second nanosecond/;
-    $DateTime{time_zone} = $new_tz;
-    @DateTime{keys %in} = values %in;
-    
-    return unless my $dt = DateTime->new(%DateTime);
-
-    if ($convert) {
-        if ($convert eq "1") {
-        }
-        else {
-            $original_tz = $new_tz;
-            $original_tz = "local" if $original_tz eq "floating";
-            $new_tz = $convert;
-        }
-        $original_tz = "local" unless defined $original_tz;
-        $dt->set_time_zone("floating");
-        $dt->set_time_zone($original_tz);
-        $dt->set_time_zone($new_tz);
-    }
-
-    if ($truncate) {
-        $truncate = $truncate->[1] if ref $truncate eq "ARRAY";
-        $truncate = (values %$truncate)[0] if ref $truncate eq "HASH";
-        $dt->truncate(to => $truncate);
-    }
-
-    return $dt;
+1;
