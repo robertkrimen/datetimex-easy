@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use Dzpl
     name => 'DateTimeX-Easy',
-    version => '0.088_1',
+    version => '0.089',
     author => 'Robert Krimen <robertkrimen@gmail.com>',
     license => 'Perl5',
     copyright => 'Robert Krimen',

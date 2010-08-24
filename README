@@ -3,7 +3,7 @@ NAME
     available
 
 VERSION
-    version 0.088_1
+    version 0.089
 
 SYNOPSIS
         # Make DateTimeX object for "now":
@@ -225,11 +225,11 @@ SEE ALSO
 
     DateTime::Format::Flexible
 
+    DateTime::Format::ICal
+
     DateTime::Format::DateManip
 
     DateTime::Format::ParseDate
-
-    DateTime::Format::ICal
 
     Date::Manip
 

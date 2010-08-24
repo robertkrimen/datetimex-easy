@@ -238,11 +238,11 @@ L<DateTime::Format::Natural>
 
 L<DateTime::Format::Flexible>
 
+L<DateTime::Format::ICal>
+
 L<DateTime::Format::DateManip>
 
 L<DateTime::Format::ParseDate>
-
-L<DateTime::Format::ICal>
 
 L<Date::Manip>
 
