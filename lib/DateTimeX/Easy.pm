@@ -163,7 +163,7 @@ You can pass the following in:
 
     ... and anything else that you want to pass to the DateTime->new constructor
 
-If C<truncate> is specificied, then DateTime->truncate will be run after object creation.
+If C<truncate> is specified, then DateTime->truncate will be run after object creation.
 
 Furthermore, you can simply pass the value for "parse" as the first positional argument of the DateTimeX::Easy call, e.g.:
 
